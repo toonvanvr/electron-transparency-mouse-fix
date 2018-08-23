@@ -1,0 +1,26 @@
+{
+  "name": "electron-transparency-mouse-fix",
+  "version": "0.0.1",
+  "description": "Click-through and drag&drop for transparent Electron windows",
+  "main": "src/electron-transparency-mouse-fix.js",
+  "scripts": {
+    "demo": "electron demo",
+    "test": "echo \"No test specified\" && exit 1"
+  },
+  "repository": {
+    "type" : "git",
+    "url" : "https://github.com/toonvanvr/electron-transparency-mouse-fix.git"
+  },
+  "keywords": [
+    "click-through",
+    "click",
+    "transparent",
+    "transparency",
+    "electron",
+    "atom",
+    "mouse",
+    "drag"
+  ],
+  "author": "Toon Vanvreckem",
+  "license": "MIT"
+}
