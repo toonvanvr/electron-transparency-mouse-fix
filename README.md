@@ -12,4 +12,6 @@ This workaround provides a very simple interface to support click-through region
 npm run demo
 ```
 
+## **This does not work on Linux!**
+
 ![Demo application gif](./demo/demo.gif)
