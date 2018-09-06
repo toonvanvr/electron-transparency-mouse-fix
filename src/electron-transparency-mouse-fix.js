@@ -1,5 +1,15 @@
-// TODO: don't reapply the same value to 'win.setIgnoreMouseEvents', cache the prev value & check for change on write
-// TODO: script stops working on reload (CTRL+R/F5/...) => only works after restarting electron
+/*
+Bugs
+----
+- script stops working on reload (CTRL+R/F5/...) => only works after restarting electron
+
+Possible performance improvements:
+----------------------------------
+- flag/refresh-function for static content (or dom edited event?) which converts selectors to htmlelements so the mousemove path elements don't all get checked by selector/className on every move (= string comparison)
+- top-down/bottom-up iteration depending on blacklist or whitelist mode
+- if/else for logging, so the `formatted strings` don't get parsed (=cpu-time) before sending them to a void function
+- don't reapply the same value to 'win.setIgnoreMouseEvents', cache the prev value & check for change on write
+*/
 
 const voidFn = ()=>{}
 
@@ -22,12 +32,12 @@ module.exports = class TransparencyMouseFix {
     this.blackList = Object.freeze({
       className: blackListClass,
       elements: new Set(blackListElements),
-      selectors: blackListSelectors,
+      selectors: Array.from(blackListSelectors),
     })
     this.whiteList = Object.freeze({
       className: whiteListClass,
       elements: new Set(whiteListElements),
-      selectors: whiteListSelectors
+      selectors: Array.from(whiteListSelectors)
     })
     this.mode = mode
     this.log = log
