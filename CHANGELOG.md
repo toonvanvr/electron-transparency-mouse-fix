@@ -1,5 +1,10 @@
 # Changelog
 
+## Version 0.1.1-alpha
+
+- Better logging method
+- SetIgnoreMouseEvents state is now latched (optional)
+
 ## Version 0.1.0-alpha
 
 - Added support `pointer-events` mode  

@@ -10,12 +10,22 @@ Possible performance improvements:
 - don't reapply the same value to 'win.setIgnoreMouseEvents', cache the prev value & check for change on write
 */
 
-const voidFn = function(){}
+const electron = require('electron')
+
+const consolePrefix = [
+  '%celectron-transparency-mouse-fix',
+   `margin-right: .25em;
+    padding: .1em .4em;
+    border-radius: .25em; 
+    background-color: #3eabdc;
+    color: white;
+    font-weight: bold;`
+]
 
 module.exports = class TransparencyMouseFix {
 
   constructor ({
-      electronWindow= require('electron').remote.getCurrentWindow(),
+      electronWindow= electron.remote.getCurrentWindow(),
       htmlWindow= window,
       blackListClass= 'mouse-off',
       blackListElements= [],
@@ -24,8 +34,13 @@ module.exports = class TransparencyMouseFix {
       whiteListElements= [],
       whiteListSelectors= [],
       mode= 'pointer-events',
-      log= false // (...msg)=>{console.debug('%cTMF%c', 'font-weight: bold', '', ...msg)}
+      log= false,
+      latch= true,
   }={}) {
+    this.log = log
+    this.listener = event => this.onMouseEvent(event)
+    this.latch = latch
+    this.handlingMouseEvents = true
     this.electronWindow = electronWindow
     this.htmlWindow = htmlWindow
     this.blackList = Object.freeze({
@@ -39,25 +54,28 @@ module.exports = class TransparencyMouseFix {
       selectors: Array.from(whiteListSelectors)
     })
     this.mode = mode
-    this.log = log
   }
 
   get log () {
-    return this._log || voidFn
+    return this._log
   }
 
   set log ( log ) {
-    this._log = log || false
+    if (typeof(log) === 'function')
+      this._log = log
+    else if (log)
+      this._log = function ( level, ...msg ) {
+        console[level](...consolePrefix, ...msg)
+      }
+    else
+      this._log = false
   }
 
   set mode ( mode ) {
     this._mode = mode = mode.toLowerCase()
-    if (mode === 'pointer-events') {
-      this.htmlWindow.document.documentElement.style.pointerEvents = 'none'
-      this.htmlWindow.document.body.style.position = 'relative'
-    } else {
+    if (mode !== 'pointer-events') {
       console.warn(
-        '[transparency-mouse-fix]\n' +
+        ...consolePrefix, '\n',
         `  '${mode}' mode is deprecated in favor of 'pointer-events'\n` +
         '  This feature is planned for removal in version 1.0.0.')
     }
@@ -67,27 +85,42 @@ module.exports = class TransparencyMouseFix {
     return this._mode 
   }
 
-  get htmlWindow () {return this._hWin}
+  get htmlWindow () {return this._htmlWindow}
 
   set htmlWindow ( htmlWindow ) {
-    if (this._hWin) {
-      this._hWin.document.removeEventListener('mousemove', this._mmListener)
-      this._hWin.removeEventListener('dragover', this._doListener)
-      this.htmlWindow.document.documentElement.style.pointerEvents = 'unset' // TODO: ugly
-      this.htmlWindow.document.body.style.position = 'unset' // TODO: ugly
-    }
-    this._hWin = htmlWindow
-    if (this.mode)
-      this.mode = this.mode // setter; TODO: ugly; move to all-in-one (window,mode)=>{...}) 
-    const onMouseEvent = e => this.onMouseEvent(e)
-    this._mmListener = this._hWin.document.addEventListener('mousemove', onMouseEvent)
-    this._doListener = this._hWin.addEventListener('dragover', onMouseEvent)
+    if (this._htmlWindow)
+      this.unregisterWindow(this._htmlWindow)
+    this._htmlWindow = htmlWindow
+    this.registerWindow(this._htmlWindow)
+  }
+
+  registerWindow ( window ) {
+    window.addEventListener('mousemove', this.listener)
+    window.addEventListener('dragover', this.listener)
+    let styleSheet = window.document.createElement('style')
+    styleSheet.classList.add('etmf-css')
+    styleSheet.innerHTML = `
+      html {pointer-events: none}
+      body {position: relative}
+    `
+    window.addEventListener('beforeunload', event =>
+      this.unregisterWindow(window))
+    this.log && this.log('info', 'Registered event listener')
+  }
+
+  unregisterWindow ( window ) {
+    window.removeEventListener('mousemove', this.listener)
+    window.removeEventListener('dragover', this.listener)
+    this.electronWindow.setIgnoreMouseEvents(false, {forward: true})
+    for (let styleSheet of window.document.querySelectorAll('.etmf-css'))
+      styleSheet.parentNode.removeChild(styleSheet)
+    this.log && this.log('info', 'Removed event listener')
   }
 
   onMouseEvent ( event ) {
-    let hole = event.target.classList.contains('etmf-hole')
+    this.log && this.log('debug', event)
 
-    // getComputedStyle only takes 0.01ms on my PC => no performance bottleneck;
+    let hole = event.target.classList.contains('etmf-hole')
 
     /*
       FIXME: dragover ignores too many events
@@ -102,13 +135,13 @@ module.exports = class TransparencyMouseFix {
 
     switch (this.mode) {
       case 'blacklist':
-        var passed = this.blackListAllows(event.path)
+        var handleMouseEvents = this.blackListAllows(event.path)
         break
       case 'whitelist':
-        var passed = this.whiteListAllows(event.path)
+        var handleMouseEvents = this.whiteListAllows(event.path)
         break
       case 'pointer-events': // preferred method
-        passed = event.target !== this.htmlWindow.document.documentElement && !hole
+        var handleMouseEvents = event.target !== this.htmlWindow.document.documentElement && !hole
         break
       default:
         throw {
@@ -117,13 +150,19 @@ module.exports = class TransparencyMouseFix {
           instance: this
         }
     }
-    if (passed) {
-      this.electronWindow.setIgnoreMouseEvents(false)
-      this.log('mouse on')
+
+    if (handleMouseEvents) {
+      if (this.latch && this.handlingMouseEvents)
+        return
+      this.electronWindow.setIgnoreMouseEvents(false, {forward: true})
+      this.log && this.log('info', 'mouse on')
     } else {
+      if (this.latch && !this.handlingMouseEvents)
+        return
       this.electronWindow.setIgnoreMouseEvents(true, {forward: true})
-      this.log('mouse off')
+      this.log && this.log('info', 'mouse off')
     }
+    this.handlingMouseEvents = handleMouseEvents
   }
 
   // deprecated
@@ -131,19 +170,19 @@ module.exports = class TransparencyMouseFix {
     for (let el of tree) {
       // skip 'global' variable
       if (!el.classList) {
-        //this.log('blacklist →', el)
+        //this.log && this.log('debug', 'blacklist →', el)
         continue
       }
 
       // match with blacklisted elements
       if (this.blackList.elements.has(el)) {
-        //this.log('blacklist →', el)
+        //this.log && this.log('debug', 'blacklist →', el)
         continue
       }
 
       // match with blacklisted className
       if (el.classList.contains(this.blackList.className)) {
-        //this.log(`blacklist → .${this.blackList.className}`)
+        //this.log && this.log('debug', `blacklist → .${this.blackList.className}`)
         continue
       }
 
@@ -151,11 +190,11 @@ module.exports = class TransparencyMouseFix {
       let match = this.blackList.selectors
         .find(sel => el.matches(sel))
       if (match) {
-        //this.log(`blacklist → ${match}`)
+        //this.log && this.log('debug', `blacklist → ${match}`)
         continue
       }
 
-      this.log('blacklist ≠', el)
+      this.log && this.log('debug', 'blacklist ≠', el)
       return true
     }
 
@@ -173,13 +212,13 @@ module.exports = class TransparencyMouseFix {
 
       // match with whitelisted elements
       if (this.whiteList.elements.has(el)) {
-        this.log('whitelist →', el)
+        this.log && this.log('debug', 'whitelist →', el)
         return true
       }
 
       // match with whitelisted className
       if (el.classList.contains(this.whiteList.className)) {
-        this.log(`whitelist → .${this.whiteList.className}`)
+        this.log && this.log('debug', `whitelist → .${this.whiteList.className}`)
         return true
       }
 
@@ -187,7 +226,7 @@ module.exports = class TransparencyMouseFix {
       let match = this.whiteList.selectors
         .find(sel => el.matches(sel))
       if (match) {
-        this.log('whiteList →', this.whiteList.selectors)
+        this.log && this.log('debug', 'whiteList →', this.whiteList.selectors)
         return true
       }
     }
