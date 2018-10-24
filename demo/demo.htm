@@ -1,36 +1,177 @@
+<!--
+  All code needed for electron-transparency-mouse-fix
+    is available inside this file. 
+
+  References:
+  - https://developer.mozilla.org/en-US/docs/Web/CSS/pointer-events
+  - https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script#Attributes
+     ==> 'defer' attribute
+-->
+
 <html>
   <head>
-    <meta charset="UTF-8">
-    <title>demo - electron-transparency-mouse-fix</title>
+    <meta charset="utf-8">
+    <title>Transparency demo - electron-transparency-mouse-fix</title>
     <link rel="stylesheet" href="demo.css">
   </head>
-<body>
-  
+<body class="click-through"
+  data-tag="body.click-through">
 
-  <!-- CONTENT -->
-  <div class="main">
-    Drop a file here<br>
-    <button>not clickable</button>
-    <div class="circle" ondrop="this.innerHTML = event.dataTransfer.files[0].path.split('\\').pop()">
-      And one here<br/>
-      <button>clickable</button>
+<!------------------------ HTML ---------------------->
+
+  
+  <div class="click-on"
+    data-tag=".click-on > *">
+    <div class="row">
+      <div class="button">Click</div>
+      <div class="drag-handle">⠿</div>
+      <input type="button" value="Native"
+        onclick="this.classList.toggle('clicked')">
+      <div class="drag-drop" draggable="true"
+        ondrop="
+          this.innerHTML = event.dataTransfer.files[0].path.split('\\').pop();
+          this.classList.add('dropped');
+          console.log(event.dataTransfer);
+        "
+        ondragstart="
+          if (this.classList.contains('dropped'))
+            event.dataTransfer.setData('DownloadURL', 'text/plain:generated-file.txt:data:text/plain;base64,' + btoa(`You dropped a file called ${this.innerHTML}`));
+          else
+            event.preventDefault()
+        ">
+        Drag & drop files</div>
+      <div class="etmf-hole">
+        Void
+      </div>
+      <div class="button click-through mark-nope">Nope</div>
+      <input class="click-through mark-nope" type="button" value="Native nope"
+        onclick="this.classList.toggle('clicked')">
     </div>
-  </div>       
-  
-  
+  </div>
 
-  <!-- ELECTRON-TRANSPARENCY-MOUSE-FIX -->
-  <!-- Placing the script here for readability; don't forget DOMContentLoaded event when placed in <head>! -->
-  <script>
-    let circle = document.querySelector('.circle')
+  <div class="margin click-through"
+    data-tag=".click-through > *.click-on"
+    data-bug="BUG: -webkit-app-region">
+    <div class="row">
+      <div class="button click-on mark">Click</div>
+      <div class="drag-handle mark-bug click-on">⠿</div>
+      <input class="click-on mark" type="button" value="Native"
+        onclick="this.classList.toggle('clicked')">
+      <div class="drag-drop click-on mark" draggable="true"
+        ondrop="
+          this.innerHTML = event.dataTransfer.files[0].path.split('\\').pop();
+          this.classList.add('dropped');
+          console.log(event.dataTransfer);
+        "
+        ondragstart="
+          if (this.classList.contains('dropped'))
+            event.dataTransfer.setData('DownloadURL', 'text/plain:generated-file.txt:data:text/plain;base64,' + btoa(`You dropped a file called ${this.innerHTML}`));
+          else
+            event.preventDefault()
+        ">
+        Drag & drop files</div>
+      <div class="etmf-hole">
+        Void
+      </div>
+      <div class="button click-through mark-nope">Nope</div>
+      <input class="click-through mark-nope" type="button" value="Native nope"
+        onclick="this.classList.toggle('clicked')">
+    </div>
+  </div>
 
-    const TransparencyMouseFix = require('../src/electron-transparency-mouse-fix.js')
-    const transparencyMouseFix = new TransparencyMouseFix({
-      mode: 'whitelist',
-      whiteListElements: [circle],
-      log: (...msg)=>{console.debug('%cTMF%c', 'font-weight: bold', '', ...msg)}
-    })
-  </script>
+<!------------------------ CSS ----------------------->
+
+<style>
+/*
+  The following CSS rules are applied on script initialization:
+  
+  ┌
+  │ html {
+  │   pointer-events: none;
+  │ }
+  │
+  │ body {
+  │   position: relative;
+  │   // otherwise buggy when an absolute child is positioned relative
+  │   // to the html bounding box
+  │ }
+  └
+  
+  The pointer-events rule is inherited from parent to child, so if you
+    re-enable it on a nested element, the element and its children will
+    receive pointer events again. To override the rule (eg. while
+    debugging), use:
+
+  ┌CSS 
+  │ html {
+  │   pointer-events: all !important;
+  │ }
+  └
+  or
+  ┌JS
+  │ document.documentElement.style.pointerEvents = 'all';
+  └
+
+  The override won't accept pointer events on the <html> element due to
+    the way the script works.
+
+  If you want top-level element to ignore mouse events but 
+    prevent it from clicking through the window, simply place it
+    within a container that captures the events with an enabled
+    pointer-events css rule. Use pointer-events: none; or equivalent
+    on the child.
+
+  If you want top-level elements to click through the whole window,
+    you need to enable pointer-events and set the --etmf: void; rule in css.
+    Pointer events need to be enabled so javascript can read the --etmf variable.
+*/
+
+.etmf-hole,
+.click-on      {pointer-events: all}
+.click-through {pointer-events: none}
+
+
+</style>
+
+
+
+
+<!------------------------ JS ------------------------>
+
+<script defer>
+/*
+  The script can be loaded from within your HTML file, making it
+    easily portable. 
+
+  Use <script defer> to make sure it loads after all dom elements
+    are available.
+
+  TODO: does it work from index.js too?
+        neccessary @ nodeIntegration=false sandboxing
+*/
+
+const TransparencyMouseFix = require('../src/electron-transparency-mouse-fix.js')
+const fix = new TransparencyMouseFix({
+  mode: 'pointer-events',
+  log: (...msg)=>{console.debug('%cTMF%c', 'font-weight: bold', '', ...msg)}
+})
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 </body>
