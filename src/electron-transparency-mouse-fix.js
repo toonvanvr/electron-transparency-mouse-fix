@@ -1,237 +1,262 @@
-/*
-Bugs
-----
-- script stops working on reload (CTRL+R/F5/...) => only works after restarting electron
+'use strict'
 
-Possible performance improvements:
-----------------------------------
-- flag/refresh-function for static content (or dom edited event?) which converts selectors to htmlelements so the mousemove path elements don't all get checked by selector/className on every move (= string comparison)
-- if/else for logging, so the `formatted strings` don't get parsed (=cpu-time) before sending them to a void function
-- don't reapply the same value to 'win.setIgnoreMouseEvents', cache the prev value & check for change on write
-*/
+/**
+ * @module TransparencyMouseFix
+ */
 
+// TODO: Linux: can't drop files out of electron?
+// TODO: Windows: can't drag files over voids
+
+ // No external dependencies!
 const electron = require('electron')
 
-const consolePrefix = [
+// Style for the default console logging tag
+const consoleTag = [ 
   '%celectron-transparency-mouse-fix',
-   `margin-right: .25em;
-    padding: .1em .4em;
-    border-radius: .25em; 
-    background-color: #3eabdc;
-    color: white;
-    font-weight: bold;`
+  `margin-right: .25em;padding: .1em .4em;border-radius: .25em;background-color: #3eabdc;color: white;font-weight: bold;`
 ]
 
-module.exports = class TransparencyMouseFix {
-
+/** Provide click-through support for Electron BrowserWindows */
+class TransparencyMouseFix {
+  
+  /**
+   * Creates an instance of TransparencyMouseFix
+   * @param {Object} options
+   * @param {electron.BrowserWindow} options.electronWindow
+   * @param {Window} options.htmlWindow
+   * @param {(boolean|string)} options.fixPointerEvents
+   * @param {(boolean|string)} options.fixPointerEvents
+   */
   constructor ({
       electronWindow= electron.remote.getCurrentWindow(),
       htmlWindow= window,
-      blackListClass= 'mouse-off',
-      blackListElements= [],
-      blackListSelectors= [],
-      whiteListClass= 'mouse-on',
-      whiteListElements= [],
-      whiteListSelectors= [],
-      mode= 'pointer-events',
-      log= false,
-      latch= true,
+      fixPointerEvents= 'auto',
+      log= false
   }={}) {
-    this.log = log
-    this.listener = event => this.onMouseEvent(event)
-    this.latch = latch
-    this.handlingMouseEvents = true
+    // Set local variables
+    // > constant
+    // > public
+    /**
+     * The window to receive mouseevents
+     * @type {electron.BrowserWindow}
+     */
     this.electronWindow = electronWindow
+    /**
+     * The renderers window/global variable
+     * @type {Object}
+     */
     this.htmlWindow = htmlWindow
-    this.blackList = Object.freeze({
-      className: blackListClass,
-      elements: new Set(blackListElements),
-      selectors: Array.from(blackListSelectors),
-    })
-    this.whiteList = Object.freeze({
-      className: whiteListClass,
-      elements: new Set(whiteListElements),
-      selectors: Array.from(whiteListSelectors)
-    })
-    this.mode = mode
-  }
+    // > private
+    /**
+     * Latches the state of setIgnoreMouseEvents
+     * @private
+     */
+    this._ignoringMouse = true
+    /**
+     * Counts the amount of parallel getAnimationFrame loops (maxed to 1)
+     * @private
+     */
+    this.altCheckHover._instanceCount = 0
+    /**
+     * Event listener callback tied to 'TransparencyMouseFix' scope
+     * @private
+     */
+    this._scopedOnMouseEvent = event => this.onMouseEvent(event)
+    /**
+     * Event listener callback tied to 'TransparencyMouseFix' scope
+     * @private
+     */
+    this._scopedAltCheckHover = () => this.altCheckHover()
+    this.log = log
+    this.fixPointerEvents = fixPointerEvents
 
-  get log () {
-    return this._log
-  }
+    // Register event listeners
+    this.registerWindow()
 
-  set log ( log ) {
-    if (typeof(log) === 'function')
-      this._log = log
-    else if (log)
+    // Workaround for:
+    //   https://github.com/electron/electron/issues/15376
+    //   setIgnoreMouseEvents({forward: true}) stops forwarding
+    //     after a page reload  
+    this.htmlWindow.addEventListener('beforeunload', function () {
+      sessionStorage.setItem('etmf-reloaded','true')
+    })
+  }
+  
+  
+  get log () {return this._log}
+  /**
+   * Enable or disable logging with an optional function for styling the console output.
+   * @access public
+   * @type {function}
+   * @param  {(boolean|function)} fn true | false | function (logLevel,...msg) {<..>}
+   */
+  set log ( fn ) {
+    if (typeof(fn) === 'function') {
+      this._log = fn
+    } else if (fn) {
       this._log = function ( level, ...msg ) {
-        console[level](...consolePrefix, ...msg)
+        console[level](...consoleTag, ...msg)
       }
-    else
+    } else {
       this._log = false
-  }
-
-  set mode ( mode ) {
-    this._mode = mode = mode.toLowerCase()
-    if (mode !== 'pointer-events') {
-      console.warn(
-        ...consolePrefix, '\n',
-        `  '${mode}' mode is deprecated in favor of 'pointer-events'\n` +
-        '  This feature is planned for removal in version 1.0.0.')
     }
   }
+  
+  get fixPointerEvents () {return this._fixPointerEvents}
+  /** 
+   * Emulation for BrowserWindow.setIgnoreMouseEvents(true, {forward: true})
+   * <li>Linux: has no support => fully replaced<br>
+   * <li>Windows: (BUG) only after a reload (see electron/electron#15376)
+   * @access public
+   * @type {boolean}
+   * @param {(boolean|string)} condition 'auto'=true | off'=false | 'force' | 'linux'
+   */
+  set fixPointerEvents ( condition ) {
+    condition = condition ? typeof condition === 'string' ? 
+        condition.toLowerCase() : true : false
 
-  get mode () {
-    return this._mode 
+    switch (condition) {
+      case false:
+      case 'off':
+        this._fixPointerEvents = false
+        break
+      case 'force':
+        this._fixPointerEvents = true
+        break
+      case 'linux':
+        this._fixPointerEvents = 
+          process.platform !== 'win32' 
+          && process.platform !== 'darwin'
+        break
+      case 'auto':
+      default:
+        this._fixPointerEvents = false
+        if (process.platform === 'win32') {
+          if (sessionStorage.getItem('etmf-reloaded') === 'true')
+            this._fixPointerEvents = true
+        } else if (process.platform !== 'darwin') {
+          this._fixPointerEvents = true
+        }
+        break
+    }
+
+    // Start polling here so you can manually change the mode.
+    // The function is adjusted so you can't have 2 parallel polling loops
+    if (this._fixPointerEvents)
+      this.altCheckHover(true)
   }
 
-  get htmlWindow () {return this._htmlWindow}
-
-  set htmlWindow ( htmlWindow ) {
-    if (this._htmlWindow)
-      this.unregisterWindow(this._htmlWindow)
-    this._htmlWindow = htmlWindow
-    this.registerWindow(this._htmlWindow)
-  }
-
-  registerWindow ( window ) {
-    window.addEventListener('mousemove', this.listener)
-    window.addEventListener('dragover', this.listener)
-    let styleSheet = window.document.createElement('style')
+  
+  /**
+   * Register mouse movement event listeners and prepare styling.
+   * @access public
+   */
+  registerWindow () {
+    this.htmlWindow.addEventListener('mousemove', this._scopedOnMouseEvent)
+    this.htmlWindow.addEventListener('dragover', this._scopedOnMouseEvent)
+    let styleSheet = this.htmlWindow.document.createElement('style')
     styleSheet.classList.add('etmf-css')
     styleSheet.innerHTML = `
       html {pointer-events: none}
       body {position: relative}
     `
-    window.addEventListener('beforeunload', event =>
-      this.unregisterWindow(window))
+    this.htmlWindow.addEventListener('beforeunload', ()=>this.unregisterWindow(this.htmlWindow))
     this.log && this.log('info', 'Registered event listener')
   }
 
-  unregisterWindow ( window ) {
-    window.removeEventListener('mousemove', this.listener)
-    window.removeEventListener('dragover', this.listener)
-    this.electronWindow.setIgnoreMouseEvents(false, {forward: true})
-    for (let styleSheet of window.document.querySelectorAll('.etmf-css'))
-      styleSheet.parentNode.removeChild(styleSheet)
+  /**
+   * @access public
+   * Remove event listeners.
+   */
+
+  unregisterWindow () { // keep for manual use
+    this.htmlWindow.removeEventListener('mousemove', this._scopedOnMouseEvent)
+    this.htmlWindow.removeEventListener('dragover', this._scopedOnMouseEvent)
+    this.electronWindow.setIgnoreMouseEvents(false)
     this.log && this.log('info', 'Removed event listener')
   }
 
+  /**
+   * Handles events like mousemove, dragover, ..
+   * @param {(MouseEvent|DragEvent|Object.<string, HTMLElement>)} event 
+   */
   onMouseEvent ( event ) {
     this.log && this.log('debug', event)
 
-    let hole = event.target.classList.contains('etmf-hole')
+    let sinkHole = event.target.classList.contains('etmf-void')
 
-    /*
-      FIXME: dragover ignores too many events
-      - hover effects stop working
-      - can't drag a file from inside electron into a void
-    */
+    // Handle dragging events
     if (event.type === 'dragover') {
-      event.preventDefault() // fixes drop event
-      if (!hole)
+      event.preventDefault() // fixes dropping files inside electron
+      if (!sinkHole)
         return
     }
 
-    switch (this.mode) {
-      case 'blacklist':
-        var handleMouseEvents = this.blackListAllows(event.path)
-        break
-      case 'whitelist':
-        var handleMouseEvents = this.whiteListAllows(event.path)
-        break
-      case 'pointer-events': // preferred method
-        var handleMouseEvents = event.target !== this.htmlWindow.document.documentElement && !hole
-        break
-      default:
-        throw {
-          msg: `Unknown mode '${this.mode}' for TransparencyMouseFix instance`,
-          mode: this.mode,
-          instance: this
-        }
-    }
-
-    if (handleMouseEvents) {
-      if (this.latch && this.handlingMouseEvents)
-        return
-      this.electronWindow.setIgnoreMouseEvents(false, {forward: true})
-      this.log && this.log('info', 'mouse on')
+    // Is the pointer is hovering an element that receives events?
+    let reachedBottom = event.target === this.htmlWindow.document.documentElement
+    let ignoreEvents = sinkHole || reachedBottom
+    if (ignoreEvents) {
+      // Latched state
+      if (this._ignoringMouse) return
+      this._ignoringMouse = true
+      
+      // Apply pass-through-window on pointer events
+      if (this.fixPointerEvents)  { 
+        // Circumvent forwarding of ignored mouse events
+        // TODO: pause on minimize/hide/.. 
+        this.electronWindow.setIgnoreMouseEvents(true, {forward: false})
+        this.altCheckHover(true)
+        this.log && this.log('info', 'mouse off (polling)')
+      } else {
+        // Ignore mouse events with built-in forwarding
+        this.electronWindow.setIgnoreMouseEvents(true, {forward: true})
+        this.log && this.log('info', 'mouse off (listening)')
+      }
     } else {
-      if (this.latch && !this.handlingMouseEvents)
-        return
-      this.electronWindow.setIgnoreMouseEvents(true, {forward: true})
-      this.log && this.log('info', 'mouse off')
+      // Latched state
+      if (!this._ignoringMouse) return
+      this._ignoringMouse = false
+
+      // Catch all mouse events
+      this.electronWindow.setIgnoreMouseEvents(false)
+      this.log && this.log('info', 'mouse on (listening)')
     }
-    this.handlingMouseEvents = handleMouseEvents
   }
 
-  // deprecated
-  blackListAllows ( tree ) {
-    for (let el of tree) {
-      // skip 'global' variable
-      if (!el.classList) {
-        //this.log && this.log('debug', 'blacklist →', el)
-        continue
-      }
-
-      // match with blacklisted elements
-      if (this.blackList.elements.has(el)) {
-        //this.log && this.log('debug', 'blacklist →', el)
-        continue
-      }
-
-      // match with blacklisted className
-      if (el.classList.contains(this.blackList.className)) {
-        //this.log && this.log('debug', `blacklist → .${this.blackList.className}`)
-        continue
-      }
-
-      // match the element with blacklist selectors (CPU-heavy?)
-      let match = this.blackList.selectors
-        .find(sel => el.matches(sel))
-      if (match) {
-        //this.log && this.log('debug', `blacklist → ${match}`)
-        continue
-      }
-
-      this.log && this.log('debug', 'blacklist ≠', el)
-      return true
+  /**
+   * Circumvent the lack of forwarded mouse events by polling mouse position with requestAnimationFrame
+   * @param {boolean} once Don't request a next animationFrame
+   * @returns {boolean} True if a element is found besides sinkholes or the main <html> element
+   */
+  altCheckHover ( first=false ) {
+    // HINT: you can manually stop the loop by incrementing _instanceCount
+    if (first) {
+      this.altCheckHover._instanceCount++
+    }
+    if (this.altCheckHover._instanceCount > 1) {
+      this.log && this.log('warn', 'aborting', this.altCheckHover._instanceCount, 'parallel altCheckHover polls')
+      this.altCheckHover._instanceCount--
+      return null
     }
 
+    // If the cursor is within content bounds, check the element it's hovering,
+    //   emulate a MouseMove event with the element as target
+    let{x,y} = electron.screen.getCursorScreenPoint()
+    let {x:left, y:top, width, height} = this.electronWindow.getContentBounds()
+    this.log && this.log('debug', {mouse: {x,y}, window: {left,top,width,height}})
+    if (x >= left && x < left+width && y >= top && y < top+height) {
+      let tgt = document.elementFromPoint(x-left, y-top)
+      // HINT: update classList checks when expanding code
+      if (!tgt.classList.contains('etmf-void') && tgt !== this.htmlWindow.document.documentElement) {
+        this.onMouseEvent({target: tgt})
+        this.altCheckHover._instanceCount--
+        return true
+      }
+    }
+
+    requestAnimationFrame(this._scopedAltCheckHover)
     return false
   }
-
-  // deprecated
-  whiteListAllows ( tree ) {
-    for (let el of tree) {
-
-      // skip 'global' variable
-      if (!el.classList) {
-        continue
-      }
-
-      // match with whitelisted elements
-      if (this.whiteList.elements.has(el)) {
-        this.log && this.log('debug', 'whitelist →', el)
-        return true
-      }
-
-      // match with whitelisted className
-      if (el.classList.contains(this.whiteList.className)) {
-        this.log && this.log('debug', `whitelist → .${this.whiteList.className}`)
-        return true
-      }
-
-      // match the element with whitelist selectors (CPU-heavy?)
-      let match = this.whiteList.selectors
-        .find(sel => el.matches(sel))
-      if (match) {
-        this.log && this.log('debug', 'whiteList →', this.whiteList.selectors)
-        return true
-      }
-    }
-
-    return false
-  }
-
 }
+
+module.exports = TransparencyMouseFix

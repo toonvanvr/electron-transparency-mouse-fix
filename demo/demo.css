@@ -69,7 +69,7 @@ body {
 
 body::after {
   align-self: center;
-  content: ' mouse events ';
+  content: ' mouse events (from css, different from js) ';
   font-family: Arial;
   font-weight: bold;
   color: darkgreen;
@@ -94,7 +94,7 @@ div[data-tag] {
 
 .button,
 .drag-drop,
-.etmf-hole {
+.etmf-void {
   display: flex;
   margin: 1em;
   width: 11em;
@@ -152,7 +152,7 @@ input[type="button"].mark-nope,
   background-color: #4b73ae !important;
 }
 
-.etmf-hole {
+.etmf-void {
   background: repeating-linear-gradient(
     45deg,
     transparent 2px,

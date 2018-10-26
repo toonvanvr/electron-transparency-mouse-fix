@@ -40,7 +40,7 @@
             event.preventDefault()
         ">
         Drag & drop files</div>
-      <div class="etmf-hole">
+      <div class="etmf-void">
         Void
       </div>
       <div class="button click-through mark-nope">Nope</div>
@@ -70,7 +70,7 @@
             event.preventDefault()
         ">
         Drag & drop files</div>
-      <div class="etmf-hole">
+      <div class="etmf-void">
         Void
       </div>
       <div class="button click-through mark-nope">Nope</div>
@@ -98,9 +98,9 @@
   └
   
   The pointer-events rule is inherited from parent to child, so if you
-    re-enable it on a nested element, the element and its children will
-    receive pointer events again. To override the rule (eg. while
-    debugging), use:
+   re-enable it on a nested element, the element and its children will
+   receive pointer events again. To override the rule (eg. while
+   debugging), use:
 
   ┌CSS 
   │ html {
@@ -112,21 +112,20 @@
   │ document.documentElement.style.pointerEvents = 'all';
   └
 
-  The override won't accept pointer events on the <html> element due to
-    the way the script works.
+  The override won't accept pointer events on the <html> element 
+   due to performance reasons.
 
   If you want top-level element to ignore mouse events but 
-    prevent it from clicking through the window, simply place it
-    within a container that captures the events with an enabled
-    pointer-events css rule. Use pointer-events: none; or equivalent
-    on the child.
+   prevent it from clicking through the window, simply place it
+   within a container that captures the events with an enabled
+   pointer-events css rule. Use pointer-events: none; or equivalent
+   on the child.
 
   If you want top-level elements to click through the whole window,
-    you need to enable pointer-events and set the --etmf: void; rule in css.
-    Pointer events need to be enabled so javascript can read the --etmf variable.
+   you need to enable pointer-events and set the --etmf: void; rule in css.
+   Pointer events need to be enabled so javascript can read the --etmf variable.
 */
 
-.etmf-hole,
 .click-on      {pointer-events: all}
 .click-through {pointer-events: none}
 
@@ -141,20 +140,22 @@
 <script defer>
 /*
   The script can be loaded from within your HTML file, making it
-    easily portable. 
+   easily portable. 
 
   Use <script defer> to make sure it loads after all dom elements
-    are available.
+   are available.
 
-  TODO: does it work from index.js too?
-        neccessary @ nodeIntegration=false sandboxing
+  Use in production:
+   const TransparencyMouseFix = require('electron-transparency-mouse-fix')
 */
 
-const TransparencyMouseFix = require('../src/electron-transparency-mouse-fix.js')
+const TransparencyMouseFix = require('../dist/electron-transparency-mouse-fix.js')
 const fix = new TransparencyMouseFix({
-  mode: 'pointer-events',
-  log: true
+  log: true,
+  fixPointerEvents: 'auto'
 })
+
+
 </script>
 
 

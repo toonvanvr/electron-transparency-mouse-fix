@@ -1,9 +1,6 @@
 const electron = require('electron')
 const {app, BrowserWindow} = electron
 
-if (process.platform !== "win32")
-  app.disableHardwareAcceleration()
-
 app.on('ready', () => setTimeout(()=>{
   let win = new BrowserWindow({
     transparent: true,
@@ -16,6 +13,6 @@ app.on('ready', () => setTimeout(()=>{
   })
   win.loadFile(`${__dirname}/demo.htm`)
   win.webContents.openDevTools({mode: 'undocked'})
-}))
+}, 250)) // Transparency on Linux requires a timeout
 
 app.on('window-all-closed', ()=>app.quit())
