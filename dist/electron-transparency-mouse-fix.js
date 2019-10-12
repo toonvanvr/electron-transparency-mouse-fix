@@ -237,7 +237,7 @@ function () {
       if (x >= left && x < left + width && y >= top && y < top + height) {
         var tgt = document.elementFromPoint(x - left, y - top); // HINT: update classList checks when expanding code
 
-        if (!tgt.classList.contains('etmf-void') && tgt !== this.htmlWindow.document.documentElement) {
+        if (tgt && !tgt.classList.contains('etmf-void') && tgt !== this.htmlWindow.document.documentElement) {
           this.onMouseEvent({
             target: tgt
           });
