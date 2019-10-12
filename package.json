@@ -1,6 +1,6 @@
 {
   "name": "electron-transparency-mouse-fix",
-  "version": "1.0.0-beta",
+  "version": "1.0.0-rc.1",
   "description": "Click-through and drag&drop for transparent Electron windows",
   "main": "src/electron-transparency-mouse-fix.js",
   "scripts": {
