@@ -1,19 +1,9 @@
 {
   "name": "electron-transparency-mouse-fix",
-  "version": "1.0.0-rc.1",
+  "version": "2.0.0-alpha",
   "description": "Click-through and drag&drop for transparent Electron windows",
   "main": "src/electron-transparency-mouse-fix.js",
-  "scripts": {
-    "demo": "electron demo",
-    "local-demo": "./node_modules/electron/dist/electron demo",
-    "test": "echo \"No test specified\" && exit 1",
-    "build": "npm run remove-build-dirs && npm run build-normal && npm run build-mini && npm run build-docs",
-    "remove-build-dirs": "npx rmdir-cli docs dist",
-    "ensure-build-dirs": "npx mkdirp docs dist",
-    "build-normal": "npm run ensure-build-dirs && npx babel src -o dist/electron-transparency-mouse-fix.js --source-maps --presets @babel/preset-env",
-    "build-mini": "npm run ensure-build-dirs && npx babel src -o dist/electron-transparency-mouse-fix.min.js --source-maps --presets @babel/preset-env --minify --compact true --no-comments",
-    "build-docs": "npm run ensure-build-dirs && npx jsdoc2md src/electron-transparency-mouse-fix.js > docs/api.md"
-  },
+  "scripts": {},
   "repository": {
     "type": "git",
     "url": "https://github.com/toonvanvr/electron-transparency-mouse-fix.git"
@@ -31,12 +21,6 @@
   "author": "Toon Vanvreckem",
   "license": "MIT",
   "devDependencies": {
-    "@babel/cli": "^7.1.2",
-    "@babel/core": "^7.1.2",
-    "@babel/preset-env": "^7.1.0",
-    "electron": "^3.0.6",
-    "jsdoc-to-markdown": "^4.0.1",
-    "mkdirp": "^0.5.1",
-    "rmdir-cli": "^2.0.6"
+    "electron": "^6.0.12"
   }
 }
