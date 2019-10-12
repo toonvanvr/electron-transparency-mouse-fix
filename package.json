@@ -22,5 +22,8 @@
   "license": "MIT",
   "devDependencies": {
     "electron": "^6.0.12"
+  },
+  "engines": {
+    "node": ">=12"
   }
 }
