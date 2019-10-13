@@ -15,7 +15,7 @@ app.on('activate', ()=> win.widget === null && createWidget())
 // Run
 function run () {
   createWidget(index)
-  
+
   DEV && devMode()
 }
 
@@ -26,24 +26,25 @@ function createWidget (page) {
     webPreferences: {
       nodeIntegration: true
     },
-    width: Math.round(width/3),
+    width: Math.round(width/2),
     height,
     x: 0,
     y: 0,
     show: false,
-    alwaysOnTop: true,
+    // alwaysOnTop: true,
     frame: false,
     transparent: true,
-    closable: false,
-    resizable: false,
-    minimizable: false,
-    maximizable: false,
+    // closable: false,
+    // resizable: false,
+    // minimizable: false,
+    // maximizable: false,
+    // movable: true
   })
-  
+
   // Lifecycle
   w.on('closed', function(){win.widget = null})
   w.once('ready-to-show', function(){win.widget.show()})
-  
+
   // Run
   w.loadFile(page)
 
