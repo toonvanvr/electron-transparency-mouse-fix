@@ -1,26 +1,25 @@
-class PointerEventsIgnoredFix {
+class PointerFix {
   #active = false
   #ignore
   #eWin
 
-  constructor (
+  constructor ({
       active=true,
       useCache=true,
       initialState=undefined,
       rootElement=document.documentElement,
       electronWindow=require('electron').remote.getCurrentWindow(),
-  ) {
+  }={}) {
     this.eventHandler = (event) => {
       if (this.#active && event.target) {
-        this.ignore = event.target === this.root
-        console.log(this.ignore)
+        console.log(this.ignore = event.target === this.root)
       }
     }
 
     this.#eWin = electronWindow
     this.root = rootElement
     this.useCache = useCache
-    
+
     if (initialState === undefined) {
       this.#ignore = undefined
       const top = this.root.getRootNode()
@@ -40,7 +39,7 @@ class PointerEventsIgnoredFix {
 
   get ignore () {return this.#ignore}
   get active() {return this.#active}
-  
+
   set ignore (ignore) {
     if (!this.useCache || this.#ignore !== ignore) {
       this.#eWin.setIgnoreMouseEvents(ignore, {forward: true})
@@ -60,3 +59,5 @@ class PointerEventsIgnoredFix {
     this.#active = active
   }
 }
+
+module.exports = PointerFix
