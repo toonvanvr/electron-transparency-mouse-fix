@@ -241,7 +241,7 @@ class TransparencyMouseFix {
 
     // If the cursor is within content bounds, check the element it's hovering,
     //   emulate a MouseMove event with the element as target
-    let{x,y} = electron.screen.getCursorScreenPoint()
+    let{x,y} = (electron.screen || electron.remote.screen).getCursorScreenPoint()
     let {x:left, y:top, width, height} = this.electronWindow.getContentBounds()
     this.log && this.log('debug', {mouse: {x,y}, window: {left,top,width,height}})
     if (x >= left && x < left+width && y >= top && y < top+height) {
