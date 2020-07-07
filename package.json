@@ -21,7 +21,7 @@
   "author": "Toon Vanvreckem",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^6.0.12"
+    "electron": "^7.2.4"
   },
   "engines": {
     "node": ">=12"
