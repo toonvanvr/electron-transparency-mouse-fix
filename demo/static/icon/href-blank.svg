@@ -1,0 +1,9 @@
+<!--
+  Icon:      cil-external-link
+  Icon set:  CoreUI Free
+  Author:    creativeLabs Łukasz Holeczek
+  License:   CC BY 4.0
+  Icon size: 512 x 512
+  URL:       https://iconify.design/icon-sets/cil/external-link.html
+-->
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" focusable="false" width="1em" height="1em" style="-ms-transform: rotate(360deg); -webkit-transform: rotate(360deg); transform: rotate(360deg);" preserveAspectRatio="xMidYMid meet" viewBox="0 0 512 512"><path fill="#626262" d="M400 464H48V104h192V72H16v424h416V272h-32v192z"/><path fill="#626262" d="M304 16v32h137.373L188.687 300.687l22.626 22.626L464 70.627V208h32V16H304z"/></svg>

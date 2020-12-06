@@ -1,33 +1,34 @@
-const electron = require('electron')
-const {app, BrowserWindow} = electron
-const npath = require('path')
+const electron = require("electron");
+const { app, BrowserWindow } = electron;
+const npath = require("path");
 
 // Globals
-const {DEV} = process.env
-const index = npath.join(__dirname, 'demo.html')
-const win = {}
+const { DEV } = process.env;
+const index = npath.join(__dirname, "demo.html");
+const win = {};
 
 // Lifecycle
-app.on('ready', run)
-app.on('window-all-closed', ()=> process.platform !== 'darwin' && app.quit())
-app.on('activate', ()=> win.widget === null && createWidget())
+app.on("ready", run);
+app.on("window-all-closed", () => process.platform !== "darwin" && app.quit());
+app.on("activate", () => win.widget === null && createWidget());
 
 // Run
-function run () {
-  createWidget(index)
-
-  DEV && devMode()
+function run() {
+  createWidget(index);
+  if (DEV) {
+    devMode();
+  }
 }
 
 // Window creation
-function createWidget (page) {
-  const {width, height} = electron.screen.getPrimaryDisplay().workAreaSize
-  const w = win.widget = new BrowserWindow({
+function createWidget(page) {
+  const w = (win.widget = new BrowserWindow({
     webPreferences: {
-      nodeIntegration: true
+      enableRemoteModule: true,
+      nodeIntegration: true,
     },
-    width: Math.round(width/2),
-    height,
+    width: 1000,
+    height: 900,
     x: 0,
     y: 0,
     show: false,
@@ -39,20 +40,23 @@ function createWidget (page) {
     // minimizable: false,
     // maximizable: false,
     // movable: true
-  })
+  }));
 
   // Lifecycle
-  w.on('closed', function(){win.widget = null})
-  w.once('ready-to-show', function(){win.widget.show()})
+  w.on("closed", function () {
+    win.widget = null;
+  });
+  w.once("ready-to-show", function () {
+    win.widget.show();
+  });
 
   // Run
-  w.loadFile(page)
+  w.loadFile(page);
 
-  return w
+  return w;
 }
 
 // Developer mode
-function devMode () {
-  win.widget.webContents.openDevTools({mode: 'detach'})
+function devMode() {
+  win.widget.webContents.openDevTools({ mode: "detach" });
 }
-
