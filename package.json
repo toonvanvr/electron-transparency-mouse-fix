@@ -23,6 +23,6 @@
   "author": "Toon Vanvreckem",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^11.0.3"
+    "electron": "^13.6.6"
   }
 }
