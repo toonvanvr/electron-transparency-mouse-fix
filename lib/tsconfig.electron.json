@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "module": "CommonJS"
+  },
+  "extends": "../tsconfig.json",
+  "include": [
+    "./src/electron/**/*.ts"
+  ]
+}

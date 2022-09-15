@@ -1,28 +1,26 @@
 {
-  "name": "electron-transparency-mouse-fix",
-  "version": "2.0.0-sandbox",
-  "description": "Click-through and drag&drop for transparent Electron windows",
-  "main": "src/electron-transparency-mouse-fix.js",
+  "version": "2.0.0-alpha",
   "scripts": {
-    "demo": "electron ./demo/client.js"
+    "build:lib": "npm run --silent build:lib:electron && npm run --silent build:lib:renderer",
+    "build:lib:electron": "tsc -p lib/tsconfig.electron.json",
+    "build:lib:renderer": "tsc -p lib/tsconfig.renderer.json",
+    "dev:demo": "npm run --silent build:demo && npm run --silent start:demo",
+    "start:demo": "NODE_OPTIONS='--enable-source-maps' electron demo/main.js",
+    "build:demo": "npm run --silent build:demo:lib && npm run --silent build:demo:preload",
+    "build:demo:lib": "npm run --silent build:lib",
+    "build:demo:preload": "rollup demo/src/preload.js --file demo/dist/preload.js -e electron --format cjs --plugin @rollup/plugin-node-resolve --plugin @rollup/plugin-commonjs"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/toonvanvr/electron-transparency-mouse-fix.git"
+  "peerDependencies": {
+    "electron": "x"
   },
-  "keywords": [
-    "click-through",
-    "click",
-    "transparent",
-    "transparency",
-    "electron",
-    "atom",
-    "mouse",
-    "drag"
-  ],
-  "author": "Toon Vanvreckem",
-  "license": "MIT",
+  "dependencies": {
+    "tiny-typed-emitter": "^2.1.0"
+  },
   "devDependencies": {
-    "electron": "^20.1.3"
+    "@rollup/plugin-commonjs": "^22.0.2",
+    "@rollup/plugin-node-resolve": "^14.1.0",
+    "@types/node": "^18.7.18",
+    "rollup": "^2.79.0",
+    "typescript": "^4.8.3"
   }
 }

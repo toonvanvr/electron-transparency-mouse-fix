@@ -1,0 +1,6 @@
+{
+  "js/ts.implicitProjectConfig.checkJs": true,
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": true
+  }
+}
