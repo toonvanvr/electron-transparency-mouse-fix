@@ -1,4 +1,4 @@
-import { DefaultListener, ListenerSignature } from 'tiny-typed-emitter'
+import type { DefaultListener, ListenerSignature } from 'tiny-typed-emitter'
 
 export type EventEmitterLogger<
   L extends ListenerSignature<L> = DefaultListener,

@@ -6,7 +6,12 @@ import { ipcRenderer } from 'electron'
 import { TypedEmitter } from 'tiny-typed-emitter'
 import { EtmfIpcPayload } from '../common/ipc.js'
 import { EventEmitterLogger } from '../common/logging.js'
+import type {
+  EtmfCssSelectors,
+  EtmfPreloaderOptions,
+} from './etmf-preloader.types.js'
 import { EtmfRendererError } from './etmf-renderer-error'
+
 /**
  * The HTMLElement ID attribute of injected css
  *
@@ -14,35 +19,10 @@ import { EtmfRendererError } from './etmf-renderer-error'
  */
 export const etmfStyleElementId = 'etmf-css'
 
-/**
- * CSS selectors for Electron Transparency Mouse Fix
- */
-export interface EtmfCssSelectors {
-  /**
-   * This element should ignore mouse events
-   *
-   * @default '.etmf-ignore'
-   */
-  ignoreSelector?: string
-
-  /**
-   * This element should accept mouse events
-   *
-   * @default '.etmf-accept'
-   */
-  acceptSelector?: string
-}
-
+/** The default, but overridable CSS selectors for {@link EtmfPreloader} */
 const etmfDefaultCssSelectors: Required<EtmfCssSelectors> = {
   acceptSelector: '.etmf-accept',
   ignoreSelector: '.etmf-ignore',
-}
-
-/** Options object for the {@link EtmfPreloader} constructor */
-export interface EtmfPreloaderOptions {
-  enable?: boolean
-  injectCss?: boolean | EtmfCssSelectors
-  log?: EventEmitterLogger
 }
 
 /** Typed Events for {@link EtmfPreloader} which is an EventEmitter */

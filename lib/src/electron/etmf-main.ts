@@ -3,30 +3,25 @@ import { TypedEmitter } from 'tiny-typed-emitter'
 import { EtmfIpcPayload } from '../common/ipc'
 import type { EventEmitterLogger } from '../common/logging'
 import { EtmfMainError } from './etmf-main-error'
-
-/** Typed Events for {@link EtmfMain} which is an EventEmitter */
-export interface EtmfMainEvents {
-  'enabled': (enabled: boolean) => void
-  'ignore-mouse': (ignored: boolean, window: BrowserWindow) => void
-}
-
-export interface EtmfMainOptions {
-  enable?: boolean
-  log?: EventEmitterLogger | false
-}
+import { EtmfHandler, EtmfMainEvents, EtmfMainOptions } from './etmf-main.types'
 
 /**
  * Electron Transparency Mouse Fix: Electron main process injector
  *
  * @example new EtmfMain()
  */
-export class EtmfMain extends TypedEmitter<EtmfMainEvents> {
-  public registeredHandler: typeof this['handler'] | null = null
-  log: EventEmitterLogger | null
+export class EtmfMain {
+  /** Customizable logging function */
+  public log: EventEmitterLogger | null
 
+  /** Active event handler receiving IPC events from the renderer */
+  private registeredHandler: EtmfHandler | null = null
+
+  /** Event emitter */
+  private eventEmitter = new TypedEmitter<EtmfMainEvents>()
+
+  /** Create an instance which you can still enable/disable */
   constructor({ enable = true, log }: EtmfMainOptions = {}) {
-    super()
-
     this.log = log ? log : null
 
     // Enable a zero-config launch
@@ -35,21 +30,10 @@ export class EtmfMain extends TypedEmitter<EtmfMainEvents> {
     }
   }
 
-  emit(
-    event: keyof EtmfMainEvents,
-    ...args: Parameters<EtmfMainEvents[typeof event]>
-  ) {
-    if (this.log) {
-      this.log(event as string /* lib only uses strings */, ...args)
-    }
-    return super.emit(event, ...args)
-  }
-
   /**
    * Register the IPC event listener
    *
-   * @returns `true` if it wasn't enabled yet
-   * @returns `false` if it already was enabled
+   * @returns `true` unless already enabled
    */
   public enable(): boolean {
     if (this.registeredHandler) {
@@ -67,8 +51,7 @@ export class EtmfMain extends TypedEmitter<EtmfMainEvents> {
   /**
    * Unregister the IPC event listener
    *
-   * @returns `true` if it was enabled before
-   * @returns `false` if it was aleady turned off
+   * @returns `true` unless already disabled
    */
   public disable(): boolean {
     if (this.registeredHandler) {
@@ -87,6 +70,7 @@ export class EtmfMain extends TypedEmitter<EtmfMainEvents> {
     return Boolean(this.registeredHandler)
   }
 
+  /** Customizable event handler */
   public handler(event: IpcMainEvent, { ignored }: EtmfIpcPayload): void {
     const window = BrowserWindow.fromWebContents(event.sender)
     if (window) {
@@ -97,5 +81,16 @@ export class EtmfMain extends TypedEmitter<EtmfMainEvents> {
         'Cannot find reference to BrowserWindow which just sent an event',
       )
     }
+  }
+
+  /** Emit events to the renderer through IPC */
+  private emit(
+    event: keyof EtmfMainEvents,
+    ...args: Parameters<EtmfMainEvents[typeof event]>
+  ) {
+    if (this.log) {
+      this.log(event as string /* lib only uses strings */, ...args)
+    }
+    return this.eventEmitter.emit(event, ...args)
   }
 }
