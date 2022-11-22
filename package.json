@@ -5,7 +5,7 @@
     "build:lib:electron": "tsc -p lib/tsconfig.electron.json",
     "build:lib:renderer": "tsc -p lib/tsconfig.renderer.json",
     "dev:demo": "npm run --silent build:demo && npm run --silent start:demo",
-    "start:demo": "NODE_OPTIONS='--enable-source-maps' electron demo/main.js",
+    "start:demo": "cross-env NODE_OPTIONS='--enable-source-maps' electron demo/main.js",
     "build:demo": "npm run --silent build:demo:lib && npm run --silent build:demo:preload",
     "build:demo:lib": "npm run --silent build:lib",
     "build:demo:preload": "rollup demo/src/preload.js --file demo/dist/preload.js -e electron --format cjs --plugin @rollup/plugin-node-resolve --plugin @rollup/plugin-commonjs"
